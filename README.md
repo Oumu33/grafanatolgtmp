@@ -79,13 +79,14 @@
 
 ---
 
-## 代码侵入性对比：Java vs Python vs Go
+## 代码侵入性对比：Java vs Python vs Go vs Node.js
 
-本项目提供了 **Java**、**Python** 和 **Go** 三种应用的可观测性接入演示，展示了不同语言实现 **Traces + Logs + Metrics** 的侵入性差异：
+本项目提供了 **Java**、**Python**、**Go** 和 **Node.js** 四种应用的可观测性接入演示，展示了不同语言实现 **Traces + Logs + Metrics** 的侵入性差异：
 
 - **Java**：完全零代码侵入（JavaAgent 自动生成所有信号）
 - **Python**：Traces/Logs 零侵入，Metrics 轻微侵入（约 30 行集中代码，业务代码无需修改）
-- **Go**：完全侵入（每个 handler 都要手动埋点）
+- **Node.js**：完全零代码侵入（--require 参数自动生成所有信号）
+- **Go**：轻微侵入（使用 otelhttp 中间件）
 
 ### Java 应用 - 零代码侵入 ✅
 
@@ -207,14 +208,59 @@ func slowHandler(w http.ResponseWriter, r *http.Request) {
 - `/hello`：零埋点代码（otelhttp 自动生成 span 和 metrics）
 - `/slow` 和 `/alloc`：添加业务子 span 用于演示 CPU/内存分析
 
-### Go vs Python 侵入性对比
+### Node.js 应用 - 零代码侵入 ✅
 
-| 维度 | Go（otelhttp 中间件） | Python（Flask 钩子） |
-|------|----------------------|---------------------|
-| **HTTP 层埋点** | 路由注册时用中间件包装 | app.py 中添加 before/after 钩子 |
-| **代码量** | 每个路由 1 行包装代码 | 集中 30 行钩子代码 |
-| **业务代码** | 简单 handler 零埋点 | 完全零埋点 |
-| **侵入性** | ⚠️ 轻微侵入 | ⚠️ 轻微侵入 |
+**特点**：使用 OpenTelemetry Node.js SDK 自动埋点，**无需修改任何源码**
+
+**接入方式**：
+```bash
+# 使用 --require 参数启动应用
+node --require ./instrumentation.js app.js
+```
+
+**优势**：
+- ✅ 完全零代码侵入，现有应用无需修改
+- ✅ 自动埋点（Express、HTTP、FS等）
+- ✅ 通过环境变量配置，灵活切换
+- ✅ 自动关联 Traces、Logs 和 Metrics
+- ✅ console.log 自动注入 trace_id 和 span_id
+
+**实现原理**：
+- OpenTelemetry Node.js SDK 使用 monkey patching 技术在运行时包装模块
+- 自动为 Express、Koa、Fastify 等框架注入追踪代码
+- 自动拦截 HTTP 请求、数据库调用等
+- Logs Bridge 自动拦截 console.log，注入 trace context
+
+**Demo 应用**：
+- 本项目提供了 Node.js Express 演示应用（`NodeDemo/`）
+- 提供三个测试接口：`/hello`（正常）、`/slow`（CPU密集）、`/alloc`（内存密集）
+- 使用 `node --require` 零代码启动，Traces、Logs 和 Metrics 完全无需修改源码
+- 访问地址：
+  - ARM64: `http://localhost:18083`
+  - x86_64: `http://localhost:18083`
+
+**业务代码示例**：
+```javascript
+// 业务代码完全无需埋点！
+app.get('/hello', (req, res) => {
+    console.log('[INFO] Processing request');
+    res.json({ message: 'Hello World' });
+});
+```
+
+OpenTelemetry 会自动：
+- 为这个请求生成 span
+- 在日志中添加 trace_id 和 span_id
+- 记录 HTTP 指标（延迟、状态码等）
+
+### Go vs Python vs Node.js 侵入性对比
+
+| 维度 | Go（otelhttp 中间件） | Python（Flask 钩子） | Node.js（--require） |
+|------|----------------------|---------------------|---------------------|
+| **HTTP 层埋点** | 路由注册时用中间件包装 | app.py 中添加 before/after 钩子 | 启动时加载 instrumentation.js |
+| **代码量** | 每个路由 1 行包装代码 | 集中 30 行钩子代码 | 0 行（业务代码零修改） |
+| **业务代码** | 简单 handler 零埋点 | 完全零埋点 | 完全零埋点 |
+| **侵入性** | ⚠️ 轻微侵入 | ⚠️ 轻微侵入 | ✅ 零侵入 |
 
 ### 对比总结
 
@@ -228,8 +274,8 @@ func slowHandler(w http.ResponseWriter, r *http.Request) {
 **注**：
 - **Java**：完全零代码侵入，JavaAgent 自动生成所有信号
 - **Python**：Traces/Logs 零侵入，Metrics 需约 30 行集中代码（业务代码无需修改）
+- **Node.js**：完全零代码侵入，启动时加 `--require` 参数即可
 - **Go**：HTTP 层用 otelhttp 中间件（路由注册时包装），简单 handler 零埋点代码
-- **Node.js**：完全零代码侵入，启动时加 `--require` 参数即可（类似 Python）
 
 ---
 

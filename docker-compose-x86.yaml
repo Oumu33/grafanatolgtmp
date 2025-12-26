@@ -79,6 +79,32 @@ services:
     depends_on:
       - alloy
 
+  # Node.js Express 应用（零代码侵入，使用 --require 参数）
+  node-app:
+    build:
+      context: ./NodeDemo
+      dockerfile: Dockerfile
+    platform: linux/amd64  # 指定 x86 架构
+    container_name: demo-node-app-x86
+    restart: unless-stopped
+    environment:
+      # OpenTelemetry 配置（自动埋点 Traces/Metrics/Logs）
+      - OTEL_SERVICE_NAME=node-demo-app
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=node-demo-app,service.version=1.0.0,service_name=node-demo-app,job=node-demo-app
+      # Logs 配置
+      - OTEL_LOGS_EXPORTER=otlp
+      # Metrics 配置
+      - OTEL_METRICS_EXPORTER=otlp
+      - OTEL_METRIC_EXPORT_INTERVAL=5000
+    ports:
+      - "18083:3000"
+    networks:
+      - lgtmp-net
+    depends_on:
+      - alloy
+
   # ---------------------------------------------------------------------------
   # 采集层
   # ---------------------------------------------------------------------------
