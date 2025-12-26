@@ -126,6 +126,12 @@ opentelemetry-instrument python app.py
 - 自动为Flask、Django、FastAPI等框架注入追踪代码
 - 自动拦截HTTP请求、数据库调用等
 
+**Demo 应用**：
+- 本项目提供了 Python Flask 演示应用（`PythonDemo/`）
+- 提供三个测试接口：`/hello`（正常）、`/slow`（CPU密集）、`/alloc`（内存密集）
+- 使用 `opentelemetry-instrument` 零代码启动，完全无需修改源码
+- 访问地址：`http://localhost:18082`（x86_64）
+
 ### Go 应用 - SDK 集成（有侵入）📝
 
 **特点**：需要在代码中集成 OpenTelemetry Go SDK

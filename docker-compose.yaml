@@ -46,6 +46,27 @@ services:
       - alloy
       - pyroscope
 
+  # Python Flask 应用（零代码侵入，使用 opentelemetry-instrument）
+  python-app:
+    build:
+      context: ./PythonDemo
+      dockerfile: Dockerfile
+    container_name: demo-python-app
+    restart: unless-stopped
+    environment:
+      # OpenTelemetry 配置（自动埋点 Traces/Metrics/Logs）
+      - OTEL_SERVICE_NAME=python-demo-app
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=python-demo-app,service.version=1.0.0,service_name=python-demo-app,job=python-demo-app
+      - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
+    ports:
+      - "18082:5000"
+    networks:
+      - lgtmp-net
+    depends_on:
+      - alloy
+
   # ---------------------------------------------------------------------------
   # 采集层
   # ---------------------------------------------------------------------------
