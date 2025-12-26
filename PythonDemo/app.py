@@ -1,15 +1,19 @@
 """
 Python Flask Demo 应用
 演示零代码侵入的可观测性接入（使用 opentelemetry-instrument）
+注：HTTP Metrics 需要轻微代码侵入（集中初始化，业务代码无需修改）
 """
 
 import re
 import time
 import random
 import logging
-from flask import Flask, jsonify
+from flask import Flask, jsonify, g, request
 from threading import Thread
 import requests
+
+# OpenTelemetry Metrics SDK（用于 HTTP 指标自动记录）
+from opentelemetry import metrics
 
 # 配置日志
 logging.basicConfig(
@@ -19,6 +23,63 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+# ============================================================================
+# OpenTelemetry Metrics 初始化（集中配置，业务代码无需修改）
+# ============================================================================
+# 获取 Meter（复用 opentelemetry-instrument 自动配置的 MeterProvider）
+# 不再手动创建 MeterProvider，避免与自动埋点冲突
+meter = metrics.get_meter(__name__)
+
+# HTTP 请求耗时直方图（单位：毫秒）
+http_server_duration = meter.create_histogram(
+    name="http_server_duration_milliseconds",
+    description="HTTP server request duration in milliseconds",
+    unit="ms"
+)
+
+# HTTP 请求计数器
+http_server_request_count = meter.create_counter(
+    name="http_server_request_count",
+    description="Total HTTP server requests",
+    unit="1"
+)
+
+# ============================================================================
+# Flask 钩子：自动记录所有 HTTP 请求的指标（业务代码无需修改）
+# ============================================================================
+@app.before_request
+def before_request():
+    """记录请求开始时间"""
+    g.start_time = time.time()
+
+
+@app.after_request
+def after_request(response):
+    """请求结束后记录指标"""
+    if hasattr(g, 'start_time'):
+        # 计算请求耗时（毫秒）
+        duration_ms = (time.time() - g.start_time) * 1000
+
+        # 记录指标（带标签）
+        attributes = {
+            "http.method": request.method,
+            "http.route": request.path,
+            "http.status_code": response.status_code,
+        }
+
+        # 记录耗时
+        http_server_duration.record(duration_ms, attributes)
+
+        # 记录请求数
+        http_server_request_count.add(1, attributes)
+
+    return response
+
+
+# ============================================================================
+# 业务代码（完全无需修改，自动获得 Metrics）
+# ============================================================================
 
 # 全局变量：用于模拟内存泄漏
 memory_holder = []
