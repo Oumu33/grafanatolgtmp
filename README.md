@@ -79,9 +79,9 @@
 
 ---
 
-## 代码侵入性对比：Java vs Go vs Python
+## 代码侵入性对比：Java vs Python vs Go
 
-本项目提供了 **Java**、**Go** 和 **Python** 三种应用的可观测性接入演示，展示了不同语言的接入方式：
+本项目提供了 **Java**、**Python** 和 **Go** 三种应用的可观测性接入演示，展示了不同语言的接入方式：
 
 ### Java 应用 - 零代码侵入 ✅
 
@@ -104,6 +104,27 @@ java -javaagent:/path/to/opentelemetry-javaagent.jar \
 - OpenTelemetry Java Agent 在 JVM 启动时使用字节码增强技术
 - 自动为 Spring Boot、Servlet、JDBC 等框架注入追踪代码
 - Pyroscope Extension 在 span 上添加 `pyroscope.profile.id` 实现关联
+
+### Python 应用 - 零代码侵入 ✅
+
+**特点**：使用 OpenTelemetry Python 自动埋点，**无需修改任何源码**
+
+**接入方式**：
+```bash
+# 使用 opentelemetry-instrument 命令启动应用
+opentelemetry-instrument python app.py
+```
+
+**优势**：
+- ✅ 零代码侵入，现有应用无需修改
+- ✅ 自动埋点（Flask、Django、FastAPI、requests等）
+- ✅ 通过环境变量配置，灵活切换
+- ✅ 支持多种Python框架和库
+
+**实现原理**：
+- OpenTelemetry Python 使用 monkey patching 技术
+- 自动为Flask、Django、FastAPI等框架注入追踪代码
+- 自动拦截HTTP请求、数据库调用等
 
 ### Go 应用 - SDK 集成（有侵入）📝
 
@@ -134,27 +155,6 @@ defer span.End()
 - ❌ 需要修改源码
 - ❌ 需要开发人员理解 OpenTelemetry 概念
 - ❌ 代码维护成本较高
-
-### Python 应用 - 零代码侵入 ✅
-
-**特点**：使用 OpenTelemetry Python 自动埋点，**无需修改任何源码**
-
-**接入方式**：
-```bash
-# 使用 opentelemetry-instrument 命令启动应用
-opentelemetry-instrument python app.py
-```
-
-**优势**：
-- ✅ 零代码侵入，现有应用无需修改
-- ✅ 自动埋点（Flask、Django、FastAPI、requests等）
-- ✅ 通过环境变量配置，灵活切换
-- ✅ 支持多种Python框架和库
-
-**实现原理**：
-- OpenTelemetry Python 使用 monkey patching 技术
-- 自动为Flask、Django、FastAPI等框架注入追踪代码
-- 自动拦截HTTP请求、数据库调用等
 
 ### 对比总结
 
