@@ -128,10 +128,9 @@ def traffic_generator():
 
 
 if __name__ == '__main__':
-    # 启动后台流量生成器
-    traffic_thread = Thread(target=traffic_generator, daemon=True)
-    traffic_thread.start()
+    # 注意：内部流量生成器已禁用，避免与 Flask 单进程模式冲突
+    # 如需测试，请从外部发送请求：curl http://localhost:18082/hello
 
-    # 启动 Flask 应用
+    # 启动 Flask 应用（启用多线程模式）
     logger.info("Starting Python Flask demo app on port 5000...")
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True, use_reloader=False)
