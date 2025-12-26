@@ -33,19 +33,26 @@ SLOW_EMAIL_SAMPLE = "rosamariachoccelahuaaranda70@gmail.comnnbbb.bbNG.bbb.n¿.?n
 @app.route('/hello', methods=['GET'])
 def hello():
     """正常快速请求（基线）"""
-    logger.info("Processing /hello request")
-    return jsonify({
+    start_time = time.time()
+    logger.info("Processing /hello request - route=hello method=GET")
+
+    result = {
         "message": "Hello from Python Flask!",
         "route": "/hello",
         "timestamp": time.time()
-    })
+    }
+
+    duration = time.time() - start_time
+    logger.info(f"Completed /hello request - route=hello method=GET status=200 duration_ms={duration*1000:.2f}")
+
+    return jsonify(result)
 
 
 @app.route('/slow', methods=['GET'])
 def slow():
     """模拟 CPU 密集型操作（正则校验）"""
     start_time = time.time()
-    logger.info("Processing /slow request - CPU intensive operation")
+    logger.info("Processing /slow request - route=slow method=GET (CPU intensive operation)")
 
     # 模拟复杂正则匹配导致的 CPU 高占用
     match_count = 0
@@ -54,7 +61,7 @@ def slow():
             match_count += 1
 
     duration = time.time() - start_time
-    logger.info(f"Completed /slow request in {duration:.2f}s")
+    logger.info(f"Completed /slow request - route=slow method=GET status=200 duration_ms={duration*1000:.2f}")
 
     return jsonify({
         "message": "Slow operation completed",
@@ -68,7 +75,7 @@ def slow():
 def alloc():
     """模拟内存密集型操作"""
     start_time = time.time()
-    logger.info("Processing /alloc request - Memory intensive operation")
+    logger.info("Processing /alloc request - route=alloc method=GET (Memory intensive operation)")
 
     # 每次请求分配约 50MB 内存
     CHUNK_SIZE = 256 * 1024  # 256KB
@@ -86,7 +93,7 @@ def alloc():
     memory_holder.append(batch)
 
     duration = time.time() - start_time
-    logger.info(f"Completed /alloc request in {duration:.2f}s, memory batches: {len(memory_holder)}")
+    logger.info(f"Completed /alloc request - route=alloc method=GET status=200 duration_ms={duration*1000:.2f} memory_batches={len(memory_holder)}")
 
     return jsonify({
         "message": "Memory allocation completed",
@@ -100,6 +107,7 @@ def alloc():
 @app.route('/health', methods=['GET'])
 def health():
     """健康检查"""
+    logger.info("Health check - route=health method=GET status=200")
     return jsonify({"status": "healthy", "service": "python-demo-app"})
 
 
@@ -132,5 +140,14 @@ if __name__ == '__main__':
     # 如需测试，请从外部发送请求：curl http://localhost:18082/hello
 
     # 启动 Flask 应用（启用多线程模式）
-    logger.info("Starting Python Flask demo app on port 5000...")
+    logger.info("=" * 60)
+    logger.info("Starting Python Flask Demo App")
+    logger.info("Service: python-demo-app")
+    logger.info("Port: 5000")
+    logger.info("OpenTelemetry: Enabled (auto-instrumentation)")
+    logger.info("Logs Export: OTLP")
+    logger.info("Metrics Export: OTLP")
+    logger.info("Traces Export: OTLP")
+    logger.info("=" * 60)
+
     app.run(host='0.0.0.0', port=5000, debug=False, threaded=True, use_reloader=False)

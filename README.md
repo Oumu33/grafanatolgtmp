@@ -132,6 +132,14 @@ opentelemetry-instrument python app.py
 - 使用 `opentelemetry-instrument` 零代码启动，完全无需修改源码
 - 访问地址：`http://localhost:18082`（x86_64）
 
+**限制说明**：
+- ⚠️ **Metrics 自动上报限制**：Python 的 `opentelemetry-instrument` 自动埋点主要聚焦于 **Traces 和 Logs**，不会自动生成 HTTP 服务端指标（如请求速率、延迟等）
+- Python 应用当前支持：
+  - ✅ Traces → Tempo（完全支持）
+  - ✅ Logs → Loki（完全支持）
+  - ❌ Metrics → Mimir（不支持自动生成 HTTP 指标）
+- 如需 Metrics 支持，需要手动添加代码（这会破坏"零代码侵入"的优势），或使用其他语言（Java/Go 支持自动 Metrics）
+
 ### Go 应用 - SDK 集成（有侵入）📝
 
 **特点**：需要在代码中集成 OpenTelemetry Go SDK
@@ -164,11 +172,11 @@ defer span.End()
 
 ### 对比总结
 
-| 语言 | 代码侵入 | 接入方式 | 自动埋点 | 适用场景 |
-|------|----------|----------|----------|----------|
-| **Java** | ✅ 零侵入 | -javaagent | ✅ | Spring Boot、企业应用 |
-| **Python** | ✅ 零侵入 | opentelemetry-instrument | ✅ | Flask、Django、FastAPI |
-| **Go** | ❌ 需侵入 | SDK集成 | ❌ | 微服务、高性能应用 |
+| 语言 | 代码侵入 | 接入方式 | 自动 Traces | 自动 Logs | 自动 Metrics | 适用场景 |
+|------|----------|----------|------------|-----------|--------------|----------|
+| **Java** | ✅ 零侵入 | -javaagent | ✅ | ✅ | ✅ | Spring Boot、企业应用 |
+| **Python** | ✅ 零侵入 | opentelemetry-instrument | ✅ | ✅ | ❌ | Flask、Django、FastAPI |
+| **Go** | ❌ 需侵入 | SDK集成 | ✅ 手动 | ✅ 手动 | ✅ 手动 | 微服务、高性能应用 |
 
 ---
 

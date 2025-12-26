@@ -59,7 +59,14 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
       - OTEL_RESOURCE_ATTRIBUTES=service.name=python-demo-app,service.version=1.0.0,service_name=python-demo-app,job=python-demo-app
+      # Logs 配置
       - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
+      - OTEL_LOGS_EXPORTER=otlp
+      - OTEL_PYTHON_LOG_CORRELATION=true
+      - OTEL_PYTHON_LOG_LEVEL=info
+      # Metrics 配置
+      - OTEL_METRICS_EXPORTER=otlp
+      - OTEL_METRIC_EXPORT_INTERVAL=5000
     ports:
       - "18082:5000"
     networks:
