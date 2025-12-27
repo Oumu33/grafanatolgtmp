@@ -9,6 +9,7 @@ import time
 import random
 import logging
 from flask import Flask, jsonify, g, request
+from flask_cors import CORS
 from threading import Thread
 import requests
 
@@ -23,6 +24,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+# 配置 CORS：允许前端应用访问
+CORS(app, origins=['http://localhost:18084', 'http://localhost:18085'],
+     supports_credentials=True,
+     allow_headers=['Content-Type', 'Authorization', 'traceparent', 'tracestate'])
 
 # ============================================================================
 # OpenTelemetry Metrics 初始化（集中配置，业务代码无需修改）

@@ -255,12 +255,12 @@ OpenTelemetry 会自动：
 
 ### Go vs Python vs Node.js 侵入性对比
 
-| 维度 | Go（otelhttp 中间件） | Python（Flask 钩子） | Node.js（--require） |
-|------|----------------------|---------------------|---------------------|
-| **HTTP 层埋点** | 路由注册时用中间件包装 | app.py 中添加 before/after 钩子 | 启动时加载 instrumentation.js |
-| **代码量** | 每个路由 1 行包装代码 | 集中 30 行钩子代码 | 0 行（业务代码零修改） |
-| **业务代码** | 简单 handler 零埋点 | 完全零埋点 | 完全零埋点 |
-| **侵入性** | ⚠️ 轻微侵入 | ⚠️ 轻微侵入 | ✅ 零侵入 |
+| 维度 | Go（otelhttp 中间件） | Python（Flask 钩子） | Node.js（--require） | **Vue/React（浏览器）** |
+|------|----------------------|---------------------|---------------------|------------------------|
+| **HTTP 层埋点** | 路由注册时用中间件包装 | app.py 中添加 before/after 钩子 | 启动时加载 instrumentation.js | src/main 中引入 instrumentation.js |
+| **代码量** | 每个路由 1 行包装代码 | 集中 30 行钩子代码 | 0 行（业务代码零修改） | 集中 30 行 SDK 初始化 |
+| **业务代码** | 简单 handler 零埋点 | 完全零埋点 | 完全零埋点 | 完全零埋点 |
+| **侵入性** | ⚠️ 轻微侵入 | ⚠️ 轻微侵入 | ✅ 零侵入 | ⚠️ 轻微侵入 |
 
 ### 对比总结
 
@@ -270,12 +270,201 @@ OpenTelemetry 会自动：
 | **Python** | ⚠️ 轻微侵入 | opentelemetry-instrument + Flask钩子 | ✅ | ✅ | ✅ 需30行代码 | Flask、Django、FastAPI |
 | **Go** | ⚠️ 轻微侵入 | otelhttp中间件 | ✅ | ✅ 手动 | ✅ | 微服务、高性能应用 |
 | **Node.js** | ✅ 零侵入 | --require参数 | ✅ | ✅ | ✅ | Express、Koa、Fastify |
+| **Vue/React** | ⚠️ 轻微侵入 | OpenTelemetry Web SDK | ✅ | ❌ | ❌ | SPA 前端应用 |
 
 **注**：
 - **Java**：完全零代码侵入，JavaAgent 自动生成所有信号
 - **Python**：Traces/Logs 零侵入，Metrics 需约 30 行集中代码（业务代码无需修改）
 - **Node.js**：完全零代码侵入，启动时加 `--require` 参数即可
 - **Go**：HTTP 层用 otelhttp 中间件（路由注册时包装），简单 handler 零埋点代码
+- **Vue/React**：需在应用入口引入 OpenTelemetry 初始化代码（约 30 行），业务组件无需修改
+
+---
+
+## 前端监控演示（Vue/React）
+
+本项目新增了 **Vue 3** 和 **React** 前端监控演示，展示如何使用 OpenTelemetry 实现浏览器端的可观测性。
+
+### 核心特性
+
+- ✅ **轻微侵入**：仅需 30 行 OpenTelemetry 初始化代码，业务组件零修改
+- ✅ **自动埋点**：自动监控页面加载、API 请求、路由跳转
+- ✅ **Trace 传播**：自动传播 Trace Context 到后端服务，实现端到端追踪
+- ✅ **性能监控**：Web Vitals (FCP, LCP, TTI) 性能指标
+- ✅ **用户交互**：自动监控点击、表单提交等用户行为
+
+### 访问地址
+
+启动环境后，可以访问以下前端应用：
+
+- **Vue 3 应用**：`http://localhost:18084`
+- **React 应用**：`http://localhost:18085`
+- **Grafana**：`http://localhost:3000`
+
+### 前端应用功能
+
+两个前端应用提供相同的功能：
+
+1. **首页**：三个按钮调用后端 API（/hello, /slow, /alloc），可选择后端服务（Java/Python/Node.js）
+2. **Demo 页面**：演示路由跳转性能监控
+3. **About 页面**：项目说明和技术栈介绍
+
+### 前端监控指标
+
+| 监控类型 | 说明 | 示例 |
+|---------|------|------|
+| **页面加载性能** | FCP、LCP、TTI 等 Web Vitals 指标 | 首次内容绘制、最大内容绘制、可交互时间 |
+| **API 请求追踪** | 自动拦截 fetch/XHR 请求，传播 Trace Context | 前端请求 → 后端处理，完整调用链 |
+| **路由跳转性能** | Vue Router / React Router 切换耗时 | 从首页跳转到 About 页面的耗时 |
+| **用户交互事件** | 点击、表单提交等用户行为 | 按钮点击事件监控 |
+
+### 端到端 Trace 演示
+
+**场景**：用户在 Vue 应用中点击"CPU 密集（/slow）"按钮
+
+1. **浏览器端 Trace**：
+   - Span 1: `HTTP GET /slow`（fetch 请求）
+   - Trace ID: `4bf92f3577b34da6a3ce929d0e0e4736`
+
+2. **后端 Trace**（Node.js/Python/Java）：
+   - Span 2: `GET /slow`（Express/Flask/Spring handler）
+   - Parent Span ID: Span 1
+   - Trace ID: `4bf92f3577b34da6a3ce929d0e0e4736`（相同！）
+   - Span 3: `slow_business_logic`（业务逻辑）
+
+3. **在 Grafana Tempo 中查看**：
+   ```
+   浏览器 Span（fetch）
+     └─ Node.js Span（/slow handler）
+         └─ 业务逻辑 Span（slow_business_logic）
+             └─ 点击 "Profiles" → CPU 火焰图（定位到正则表达式热点）
+   ```
+
+### 如何查看前端监控数据
+
+1. **打开 Grafana**：`http://localhost:3000`
+2. **进入 Explore**，选择数据源 **Tempo**
+3. **搜索前端 Traces**：
+   - Vue 应用：`service.name="vue-demo-app"`
+   - React 应用：`service.name="react-demo-app"`
+4. **查看 Trace 瀑布图**：
+   - 顶层：浏览器 fetch span（蓝色）
+   - 子层：后端 handler span（绿色）
+   - 孙层：业务逻辑 span（黄色）
+5. **跳转到后端监控**：
+   - 点击后端 span → "Profiles" → 查看 CPU/内存火焰图
+   - 点击后端 span → "Logs" → 查看相关日志
+
+### 前端监控实现原理
+
+#### 1. OpenTelemetry 初始化（约 30 行代码）
+
+在 `src/instrumentation.js` 中：
+
+```javascript
+import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
+import { getWebAutoInstrumentations } from '@opentelemetry/auto-instrumentations-web';
+
+// 创建 Trace Provider
+const provider = new WebTracerProvider({ resource });
+
+// 配置 OTLP Exporter（通过 Nginx 代理）
+provider.addSpanProcessor(new BatchSpanProcessor(
+  new OTLPTraceExporter({ url: '/otlp/v1/traces' })
+));
+
+// 注册自动埋点
+registerInstrumentations({
+  instrumentations: [
+    getWebAutoInstrumentations({
+      '@opentelemetry/instrumentation-document-load': {},
+      '@opentelemetry/instrumentation-fetch': {},
+      '@opentelemetry/instrumentation-user-interaction': {},
+    }),
+  ],
+});
+```
+
+#### 2. 应用入口引入（1 行代码）
+
+```javascript
+// main.js / main.jsx
+import './instrumentation.js'; // 必须在 Vue/React 应用之前
+import { createApp } from 'vue';
+// ...
+```
+
+#### 3. 业务组件（零修改）
+
+```vue
+<!-- Home.vue / Home.jsx -->
+<button @click="callAPI('/hello')">正常请求</button>
+
+<script>
+const callAPI = async (endpoint) => {
+  // OpenTelemetry 自动拦截此请求，传播 Trace Context
+  const response = await axios.get(`http://localhost:18083${endpoint}`);
+};
+</script>
+```
+
+#### 4. Trace Context 自动传播
+
+OpenTelemetry 自动通过 HTTP Headers 传播 Trace Context：
+
+```http
+GET /slow HTTP/1.1
+Host: localhost:18083
+traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+```
+
+后端 OpenTelemetry SDK 自动识别此 Header，继续同一个 Trace。
+
+### 浏览器 CORS 解决方案
+
+由于浏览器安全限制，前端无法直接访问 Alloy（跨域），本项目使用 **Nginx 反向代理** 解决：
+
+```nginx
+# VueDemo/nginx.conf 和 ReactDemo/nginx.conf
+location /otlp/ {
+    proxy_pass http://alloy:4318/;
+    proxy_http_version 1.1;
+}
+```
+
+前端配置：
+
+```javascript
+// 前端通过同域路径访问，Nginx 转发到 Alloy
+url: '/otlp/v1/traces'
+```
+
+### 前端应用目录结构
+
+```
+VueDemo/（React 类似）
+├── src/
+│   ├── main.js              # 应用入口（引入 instrumentation.js）
+│   ├── App.vue              # 根组件
+│   ├── instrumentation.js   # OpenTelemetry 初始化（30 行）
+│   ├── router/              # Vue Router
+│   └── views/               # 页面组件（业务代码，零埋点）
+├── Dockerfile               # 多阶段构建（npm build + nginx）
+├── nginx.conf               # Nginx 配置（静态文件 + OTLP 代理）
+└── package.json
+```
+
+### 前端 vs 后端监控对比
+
+| 对比维度 | 后端（Java/Node.js/Python/Go） | 前端（Vue/React） |
+|---------|------------------------------|------------------|
+| **监控对象** | HTTP 请求、数据库、业务逻辑 | 页面加载、用户交互、API 请求 |
+| **Profiles 支持** | ✅ 支持（CPU/内存火焰图） | ❌ 浏览器无法采集 |
+| **Logs 支持** | ✅ 自动采集 | ⚠️ 需手动集成（console.log 拦截） |
+| **Metrics 支持** | ✅ 自动采集 | ⚠️ 需手动集成（Web Vitals） |
+| **Traces 支持** | ✅ 自动采集 | ✅ 自动采集 |
+| **Trace 传播** | ✅ 自动识别 traceparent Header | ✅ 自动添加 traceparent Header |
+| **侵入性** | Java/Node.js 零侵入<br>Python/Go 轻微侵入 | Vue/React 轻微侵入（30 行） |
 
 ---
 

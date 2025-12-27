@@ -99,6 +99,36 @@ services:
     depends_on:
       - alloy
 
+  # Vue 3 前端应用（轻微侵入，使用 OpenTelemetry Web SDK）
+  vue-app:
+    build:
+      context: ./VueDemo
+      dockerfile: Dockerfile
+    container_name: demo-vue-app
+    restart: unless-stopped
+    ports:
+      - "18084:80"
+    networks:
+      - lgtmp-net
+    depends_on:
+      - alloy
+      - node-app
+
+  # React 前端应用（轻微侵入，使用 OpenTelemetry Web SDK）
+  react-app:
+    build:
+      context: ./ReactDemo
+      dockerfile: Dockerfile
+    container_name: demo-react-app
+    restart: unless-stopped
+    ports:
+      - "18085:80"
+    networks:
+      - lgtmp-net
+    depends_on:
+      - alloy
+      - node-app
+
   # ---------------------------------------------------------------------------
   # 采集层
   # ---------------------------------------------------------------------------

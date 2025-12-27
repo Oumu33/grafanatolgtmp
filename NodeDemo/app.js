@@ -9,9 +9,18 @@
  */
 
 const express = require('express');
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// 配置 CORS：允许前端应用访问
+app.use(cors({
+    origin: ['http://localhost:18084', 'http://localhost:18085'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'traceparent', 'tracestate']
+}));
 
 // ============================================================================
 // 业务代码（完全无需埋点代码，自动生成 Traces/Logs/Metrics）
